@@ -7,6 +7,9 @@ include "../inc/macros.inc"
 
 //Libraries
 include "../inc/console.inc"
+include "../inc/superturbofile.inc"
+
+allocate(sram, $F00000, $20000)
 
 seek($FFC0)
 db "TURBOFILE TEST       "
@@ -92,8 +95,9 @@ allocateWRAM(ram_counter, 1)
 start:
 	consoleInit()
 	jsl joypad_init
+	STF_Init()
 	sep #$20
-	lda #$80
+	lda.b #$80
 	sta.w NMITIMEN	//Enable NMI
 
 	stz ram_counter
@@ -101,15 +105,6 @@ start:
 	consoleNewLine()
 	consoleNewLine()
 	consolePrint(string_title)
-	consoleNewLine()	
-start_loop:
-	rep #$20
-	lda.w #$0180
-	sta console_cursor
-	
-	lda ram_counter
-	jsl console_hexbyte
-	consoleNewLine()
 	consoleNewLine()
 	consolePrint(string_port1)
 
@@ -125,7 +120,53 @@ start_loop:
 	jsl console_hexbyte
 	lda joypad2_id+1
 	jsl console_hexbyte
+	consoleNMIReady()
+	consoleWait()
 
+	rep #$20
+	lda.w joypad2_id
+	cmp.w #$FE0E
+	beq +
+	consoleNewLine()
+	consolePrint(string_notfound)
+
+	consoleNMIReady()
+	consoleWait()
+	brl ++
+
++;	consoleNewLine()
+	consolePrint(string_stfdump)
+
+	consoleNMIReady()
+	consoleWait()
+
+	sep #$20
+	stz.w NMITIMEN //Disable NMI
+
+	//Test read
+	STF_GetStatus()
+	STF_ReadArray(0x00000, $F00000, 0x8000)
+	STF_ReadArray(0x08000, $F10000, 0x8000)
+	STF_ReadArray(0x10000, $F20000, 0x8000)
+	STF_ReadArray(0x18000, $F30000, 0x8000)
+
+	sep #$20
+	lda.b #$80
+	sta.w NMITIMEN	//Enable NMI
+
+	consoleNewLine()
+	consolePrint(string_stfcheck)
+
+	consoleNMIReady()
+	consoleWait()
++;
+start_loop:
+	rep #$20
+	lda.w #$0180
+	sta console_cursor
+	
+	lda ram_counter
+	jsl console_hexbyte
 
 	consoleNMIReady()
 	consoleWait()
@@ -141,5 +182,15 @@ string_port1:
 string_port2:
 	db "  Controller Port 2: ",0
 
+string_notfound:
+	db "  Turbo File not found.",0
+
+string_stfdump:
+	db "  Dumping Super Turbo File...",0
+
+string_stfcheck:
+	db "  Successfully dumped",0
+
 include "console.asm"
 include "joypad.asm"
+include "superturbofile.asm"
