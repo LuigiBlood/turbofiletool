@@ -14,10 +14,10 @@ macro consoleNMI() {
 
 //Use this to print a string
 macro consolePrint(variable addr) {
-	rep #$30
-	lda #addr
+	rep #$20
+	lda.w #addr
 	sta.b ram_args
-	lda #(addr >> 8)
+	lda.w #(addr >> 8)
 	sta.b ram_args+1
 	jsl console_print
 }
@@ -40,4 +40,11 @@ macro consoleNMIReady() {
 //Use this to wait for screen update
 macro consoleWait() {
 	jsl console_wait
+}
+
+//Use this to change cursor position
+inline consolePosition(variable x, variable y) {
+	rep #$20
+	lda.w #((x*2)+(y*32))
+	sta console_cursor
 }

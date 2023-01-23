@@ -161,9 +161,7 @@ start:
 	consoleWait()
 +;
 start_loop:
-	rep #$20
-	lda.w #$0180
-	sta console_cursor
+	consolePosition(10, 20)
 	
 	lda ram_counter
 	jsl console_hexbyte
